@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DE PAUL CUP 2026 — Live Scoreboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <style>
+        *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+        :root{--gold:#D4A843;--gold-lt:#F0D078;--gold-dk:#9A7B2E;--bg:#09090D;--card:#131319;--card-h:#19191F;--bdr:#22222E;--tx:#FFFFFF;--tx2:#7A7A8E;--live:#EF4444;--done:#22C55E;--soon:#6B7280}
+        html{scroll-behavior:smooth}
+        body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--tx);overflow-x:hidden;min-height:100vh}
+
+        #intro{position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:1;transform:scale(1);transition:opacity .8s ease,transform .8s ease}
+        #intro.out{opacity:0;transform:scale(1.06);pointer-events:none}
+        .intro-particles{position:absolute;inset:0;overflow:hidden}
+        .ptc{position:absolute;border-radius:50%;background:var(--gold);opacity:0;animation:ptcUp var(--d) var(--dl) infinite}
+        @keyframes ptcUp{0%{opacity:0;transform:translateY(0) scale(0)}15%{opacity:.45}85%{opacity:.15}100%{opacity:0;transform:translateY(-105vh) scale(1.2)}}
+        .intro-logo-wrap{position:relative;width:170px;height:170px;display:flex;align-items:center;justify-content:center}
+        .intro-logo-circle{position:absolute;inset:0;border-radius:50%;background:#fff;opacity:0;transform:scale(0);animation:circIn 1.4s .3s cubic-bezier(.16,1,.3,1) forwards;box-shadow:0 0 60px rgba(255,255,255,.12),0 0 120px rgba(212,168,67,.15)}
+        @keyframes circIn{to{opacity:1;transform:scale(1)}}
+        .intro-logo-ring{position:absolute;inset:-14px;border:1px solid rgba(212,168,67,0);border-radius:50%;animation:ringIn 1.4s .7s cubic-bezier(.16,1,.3,1) forwards}
+        @keyframes ringIn{from{transform:scale(.4);opacity:0}to{border-color:rgba(212,168,67,.2);opacity:1}}
+        .intro-logo{position:relative;z-index:2;width:130px;height:130px;object-fit:contain;opacity:0;transform:scale(.2) rotate(-15deg);filter:drop-shadow(0 0 0 rgba(0,0,0,0));animation:logoIn 1.6s .5s cubic-bezier(.16,1,.3,1) forwards}
+        @keyframes logoIn{0%{opacity:0;transform:scale(.2) rotate(-15deg)}50%{opacity:1;transform:scale(1.04) rotate(1deg);filter:drop-shadow(0 2px 8px rgba(0,0,0,.25))}100%{opacity:1;transform:scale(1) rotate(0);filter:drop-shadow(0 2px 8px rgba(0,0,0,.25))}}
+        .intro-title{font-family:'Oswald',sans-serif;font-size:clamp(2.2rem,8vw,4.5rem);font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);margin-top:1.8rem;display:flex;gap:.25em;overflow:hidden}
+        .intro-title .w{display:inline-block;opacity:0;transform:translateY(110%);animation:wUp .8s cubic-bezier(.16,1,.3,1) forwards}
+        .intro-title .w:nth-child(1){animation-delay:1.8s}.intro-title .w:nth-child(2){animation-delay:1.92s}.intro-title .w:nth-child(3){animation-delay:2.04s}
+        @keyframes wUp{to{opacity:1;transform:translateY(0)}}
+        .intro-year{font-family:'Oswald',sans-serif;font-size:clamp(1.2rem,4vw,2.8rem);font-weight:300;letter-spacing:.6em;color:var(--tx);margin-top:.35rem;opacity:0;transform:scale(.4);animation:yrIn .65s 2.6s cubic-bezier(.16,1,.3,1) forwards}
+        @keyframes yrIn{to{opacity:1;transform:scale(1)}}
+        .intro-line{width:0;height:1.5px;background:linear-gradient(90deg,transparent,var(--gold),transparent);margin-top:1.4rem;animation:lineDr .8s 3s ease forwards}
+        @keyframes lineDr{to{width:min(300px,65vw)}}
+        .intro-sub{font-size:.78rem;font-weight:600;letter-spacing:.45em;text-transform:uppercase;color:var(--tx2);margin-top:1.1rem;opacity:0;animation:fadeI .5s 3.5s ease forwards}
+        @keyframes fadeI{to{opacity:1}}
+        .intro-sport-row{display:flex;gap:1.8rem;margin-top:1.3rem;opacity:0;animation:fadeI .5s 3.8s ease forwards}
+        .intro-sport-item{display:flex;align-items:center;gap:.45rem;font-size:.68rem;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--tx2)}
+        .intro-sport-item i{color:var(--gold);font-size:.8rem}
+        #skipBtn{position:absolute;bottom:1.5rem;right:1.5rem;background:transparent;border:1px solid rgba(212,168,67,.22);color:var(--gold);padding:.45rem 1rem;font-family:'Inter',sans-serif;font-size:.65rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;border-radius:4px;opacity:0;animation:fadeI .3s .6s ease forwards;transition:all .25s ease;z-index:10}
+        #skipBtn:hover{background:rgba(212,168,67,.1);border-color:var(--gold)}
+
+        #app{opacity:0;transition:opacity .7s .15s ease;min-height:100vh}#app.show{opacity:1}
+        .ambient{position:fixed;inset:0;pointer-events:none;z-index:-1;overflow:hidden}
+        .amb-g{position:absolute;width:500px;height:500px;border-radius:50%;filter:blur(140px);opacity:.02;background:var(--gold)}
+        .amb-g.a{top:-200px;right:-150px;animation:ambF 20s ease-in-out infinite}.amb-g.b{bottom:-200px;left:-150px;animation:ambF 26s ease-in-out infinite reverse}
+        @keyframes ambF{0%,100%{transform:translate(0,0)}50%{transform:translate(50px,-35px)}}
+
+        .hdr{position:sticky;top:0;z-index:100;background:rgba(9,9,13,.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid var(--bdr);padding:.6rem 1rem}
+        .hdr-in{max-width:1400px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:.8rem}
+        .hdr-l{display:flex;align-items:center;gap:.7rem;min-width:0}
+        .hdr-logo{width:36px;height:36px;object-fit:contain;flex-shrink:0;filter:drop-shadow(0 0 5px rgba(212,168,67,.25))}
+        .hdr-t{font-family:'Oswald',sans-serif;font-size:clamp(.85rem,3.2vw,1.3rem);font-weight:600;letter-spacing:.1em;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .hdr-t em{font-style:normal;color:var(--gold)}
+        .hdr-r{display:flex;align-items:center;gap:1.2rem;flex-shrink:0}
+        .live-ind{display:flex;align-items:center;gap:.35rem;font-size:.65rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--live)}
+        .live-dot{width:6px;height:6px;background:var(--live);border-radius:50%;animation:ldot 1.4s ease infinite}
+        @keyframes ldot{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.5)}50%{box-shadow:0 0 0 4px rgba(239,68,68,0)}}
+        .hdr-clock{font-family:'Oswald',sans-serif;font-size:.85rem;color:var(--tx2);letter-spacing:.05em}
+        .conn-badge{font-size:.6rem;font-weight:600;letter-spacing:.06em;padding:.15rem .5rem;border-radius:3px;text-transform:uppercase}
+        .conn-badge.on{background:rgba(34,197,94,.1);color:var(--done)}
+        .conn-badge.off{background:rgba(239,68,68,.1);color:var(--live);animation:ldot 1.4s ease infinite}
+
+        .tabs-wrap{max-width:1400px;margin:0 auto;padding:1rem 1rem 0}
+        .s-tabs{display:flex;border-bottom:1px solid var(--bdr);overflow-x:auto;-webkit-overflow-scrolling:touch}.s-tabs::-webkit-scrollbar{display:none}
+        .s-tab{font-family:'Oswald',sans-serif;font-size:.95rem;font-weight:500;letter-spacing:.1em;text-transform:uppercase;padding:.65rem 1.4rem;background:none;border:none;color:var(--tx2);cursor:pointer;position:relative;transition:color .25s;white-space:nowrap;flex-shrink:0}
+        .s-tab:hover{color:var(--tx)}.s-tab.on{color:var(--gold)}
+        .s-tab.on::after{content:'';position:absolute;bottom:-1px;left:0;width:100%;height:2px;background:var(--gold)}
+        .s-tab i{margin-right:.4rem;font-size:.8rem}
+        .a-tabs{display:flex;gap:.4rem;margin-top:.8rem;flex-wrap:wrap;align-items:center}
+        .a-tab{font-family:'Inter',sans-serif;font-size:.7rem;font-weight:600;letter-spacing:.07em;text-transform:uppercase;padding:.4rem .9rem;background:var(--card);border:1px solid var(--bdr);color:var(--tx2);cursor:pointer;border-radius:5px;transition:all .25s}
+        .a-tab:hover{border-color:var(--gold-dk);color:var(--tx)}.a-tab.on{background:rgba(212,168,67,.07);border-color:var(--gold);color:var(--gold)}
+        .stats-row{display:flex;gap:1rem;margin-top:.8rem;flex-wrap:wrap;align-items:center}
+        .st-i{display:flex;align-items:center;gap:.35rem;font-size:.68rem;color:var(--tx2)}
+        .st-d{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+        .st-d.sl{background:var(--live)}.st-d.sc{background:var(--done)}.st-d.su{background:var(--soon)}
+        .st-c{font-weight:700;color:var(--tx)}.st-sep{color:var(--bdr);font-size:.55rem}
+
+        .matches-wrap{max-width:1400px;margin:0 auto;padding:.8rem 1rem 2rem}
+        .m-grid{display:grid;grid-template-columns:1fr;gap:.7rem}
+        @media(min-width:640px){.m-grid{grid-template-columns:repeat(2,1fr)}}
+
+        .mc{background:var(--card);border:1px solid var(--bdr);border-radius:10px;padding:1rem 1.1rem;position:relative;overflow:hidden;transition:all .3s ease;opacity:0;transform:translateY(14px)}
+        .mc.vis{opacity:1;transform:translateY(0)}.mc:hover{background:var(--card-h);border-color:#2a2a38}
+        .mc.live{border-color:rgba(239,68,68,.25)}.mc.live::before{content:'';position:absolute;top:0;left:0;width:3px;height:100%;background:var(--live);animation:lbar 2s ease infinite}
+        @keyframes lbar{0%,100%{opacity:1}50%{opacity:.4}}
+        .mc.done::before{content:'';position:absolute;top:0;left:0;width:3px;height:100%;background:var(--done)}
+        .mc.soon::before{content:'';position:absolute;top:0;left:0;width:3px;height:100%;background:var(--soon)}
+        .mc-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;padding-left:.4rem}
+        .mc-round{font-size:.6rem;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--tx2);background:rgba(255,255,255,.04);padding:.18rem .5rem;border-radius:3px}
+        .mc-venue{font-size:.6rem;color:var(--tx2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:45%}
+        .mc-venue i{margin-right:.2rem;font-size:.5rem}
+        .score-row{display:flex;align-items:center;padding:.25rem 0}
+        .tm{flex:1;display:flex;align-items:center;gap:.55rem;min-width:0}
+        .tm.aw{flex-direction:row-reverse;text-align:right}
+        .tm-badge{width:32px;height:32px;border-radius:6px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-family:'Oswald',sans-serif;font-size:.65rem;font-weight:600;color:#fff;letter-spacing:.02em}
+        .tm-nm{font-size:.78rem;font-weight:600;line-height:1.2;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+        .tm-nm .full{display:inline}.tm-nm .abbr{display:none}
+        @media(max-width:480px){.tm-nm .full{display:none}.tm-nm .abbr{display:inline}}
+        .sc-ctr{display:flex;align-items:center;gap:.45rem;padding:0 .6rem;flex-shrink:0}
+        .sc-n{font-family:'Oswald',sans-serif;font-size:1.5rem;font-weight:700;min-width:1.6rem;text-align:center;transition:transform .3s,color .3s}
+        .mc.live .sc-n{background:linear-gradient(135deg,#fff,var(--gold-lt));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+        .mc.soon .sc-n{font-size:.9rem;color:var(--tx2);font-weight:400}
+        .sc-n.flash{animation:sFlash .5s ease}
+        @keyframes sFlash{0%{transform:scale(1)}30%{transform:scale(1.35)}100%{transform:scale(1)}}
+        .sc-sep{font-family:'Oswald',sans-serif;font-size:1.2rem;color:var(--tx2);font-weight:300}
+        .mc.soon .sc-sep{display:none}
+        .mc-ft{display:flex;align-items:center;justify-content:space-between;margin-top:.6rem;padding-left:.4rem;gap:.5rem}
+        .mc-time{font-size:.65rem;color:var(--tx2);white-space:nowrap}.mc-time i{margin-right:.2rem}
+        .badge{font-size:.58rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:.18rem .55rem;border-radius:3px;white-space:nowrap}
+        .badge.live{background:rgba(239,68,68,.1);color:var(--live);animation:bP 2s ease infinite}
+        @keyframes bP{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.25)}50%{box-shadow:0 0 0 3px rgba(239,68,68,0)}}
+        .badge.done{background:rgba(34,197,94,.08);color:var(--done)}.badge.soon{background:rgba(107,114,128,.1);color:var(--soon)}
+        .mc-ht{font-size:.58rem;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--gold);background:rgba(212,168,67,.07);padding:.15rem .45rem;border-radius:3px;white-space:nowrap}
+
+        /* Skeleton */
+        .skel{border:1px solid var(--bdr);border-radius:10px;padding:1rem 1.1rem;background:var(--card)}
+        .skel-bar{height:12px;border-radius:4px;background:var(--bdr);animation:skPulse 1.2s ease infinite}
+        .skel-circle{width:32px;height:32px;border-radius:6px;background:var(--bdr);flex-shrink:0;animation:skPulse 1.2s ease infinite}
+        @keyframes skPulse{0%,100%{opacity:.4}50%{opacity:.8}}
+        .skel-row{display:flex;align-items:center;gap:.55rem;margin-top:.7rem}
+        .skel-score{width:60px;height:28px;border-radius:4px}
+
+        /* Empty */
+        .empty-state{text-align:center;padding:4rem 1rem;color:var(--tx2)}
+        .empty-state i{font-size:2.5rem;color:var(--bdr);margin-bottom:1rem;display:block}
+        .empty-state p{font-size:.85rem;line-height:1.6}
+
+        .ftr{text-align:center;padding:1.5rem 1rem;border-top:1px solid var(--bdr);margin-top:1rem}
+        .ftr p{font-size:.65rem;color:var(--tx2);letter-spacing:.03em;line-height:1.7}
+        .ftr a{color:var(--gold);text-decoration:none}
+
+        ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--bdr);border-radius:2px}::-webkit-scrollbar-thumb:hover{background:var(--gold-dk)}
+        @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+    </style>
+</head>
+<body>
+
+<div id="intro">
+    <div class="intro-particles" id="particles"></div>
+    <div class="intro-logo-wrap">
+        <div class="intro-logo-circle"></div>
+        <div class="intro-logo-ring"></div>
+        <img src="./images/logo.png" alt="De Paul School" class="intro-logo">
+    </div>
+    <div class="intro-title"><span class="w">DE</span><span class="w">PAUL</span><span class="w">CUP</span></div>
+    <div class="intro-year">2026</div>
+    <div class="intro-line"></div>
+    <div class="intro-sub">Live Scoreboard</div>
+    <div class="intro-sport-row">
+        <div class="intro-sport-item"><i class="fas fa-futbol"></i> Football</div>
+        <div class="intro-sport-item"><i class="fas fa-basketball"></i> Basketball</div>
+    </div>
+    <button id="skipBtn">SKIP <i class="fas fa-arrow-right" style="margin-left:.35rem;font-size:.55rem"></i></button>
+</div>
+
+<div id="app">
+    <div class="ambient"><div class="amb-g a"></div><div class="amb-g b"></div></div>
+    <header class="hdr">
+        <div class="hdr-in">
+            <div class="hdr-l">
+                <img src="./images/logo.png" alt="Logo" class="hdr-logo">
+                <div class="hdr-t"><em>De Paul</em> Cup 2026</div>
+            </div>
+            <div class="hdr-r">
+                <span class="conn-badge on" id="connBadge"><i class="fas fa-wifi" style="margin-right:.25rem;font-size:.55rem"></i>Live</span>
+                <div class="live-ind"><div class="live-dot"></div><span class="lbl">Live</span></div>
+                <div class="hdr-clock" id="clock">--:--</div>
+            </div>
+        </div>
+    </header>
+    <div class="tabs-wrap">
+        <div class="s-tabs" id="sportTabs">
+            <button class="s-tab on" data-sport="football"><i class="fas fa-futbol"></i>Football</button>
+            <button class="s-tab" data-sport="basketball"><i class="fas fa-basketball"></i>Basketball</button>
+        </div>
+        <div class="a-tabs" id="ageTabs">
+            <button class="a-tab on" data-age="u16">Under 16</button>
+            <button class="a-tab" data-age="u18">Under 18</button>
+        </div>
+        <div class="stats-row" id="statsRow"></div>
+    </div>
+    <div class="matches-wrap"><div class="m-grid" id="matchGrid"></div></div>
+    <footer class="ftr">
+        <p>DE PAUL CUP 2026 — Inter-School Sports Tournament<br>
+        Organised by De Paul School &bull; Football & Basketball<br>
+        &copy; 2026 All Rights Reserved &bull;</p>
+    </footer>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script>
+/* Particles */
+(function(){var c=document.getElementById('particles');for(var i=0;i<25;i++){var p=document.createElement('div');p.className='ptc';p.style.left=Math.random()*100+'%';p.style.top=(55+Math.random()*45)+'%';p.style.setProperty('--d',(5+Math.random()*5)+'s');p.style.setProperty('--dl',(Math.random()*4)+'s');var s=1.5+Math.random()*2;p.style.width=s+'px';p.style.height=s+'px';c.appendChild(p)}})();
+
+/* Helpers */
+function tColor(n){var h=0;for(var i=0;i<n.length;i++)h=n.charCodeAt(i)+((h<<5)-h);return'hsl('+(((h%360)+360)%360)+',45%,30%)'}
+function tAbbr(n){var a=n.replace(/^(St\.?|Holy|SHSS|GHSS|MHSS|HSS|School|')/g,'').trim().split(/\s+/).map(function(w){return w[0]}).join('').substring(0,3).toUpperCase();return a||'TM'}
+
+/* Firebase */
+var firebaseConfig={apiKey:"AIzaSyBpNOpvViUBo1mB0MaMk2shSOMdVGCxG5w",authDomain:"dpcup-fbbb5.firebaseapp.com",databaseURL:"https://dpcup-fbbb5-default-rtdb.asia-southeast1.firebasedatabase.app",projectId:"dpcup-fbbb5",storageBucket:"dpcup-fbbb5.firebasestorage.app",messagingSenderId:"338538335205",appId:"1:338538335205:web:800a88022a4a010809fd0c"};
+firebase.initializeApp(firebaseConfig);
+var db=firebase.database();
+
+/* State */
+var curSport='football',curAge='u16',allMatches={},prevScores={},firstLoad=true;
+
+/* Connection */
+db.ref('.info/connected').on('value',function(s){
+    var badge=document.getElementById('connBadge');
+    if(s.val()===true){badge.className='conn-badge on';badge.innerHTML='<i class="fas fa-wifi" style="margin-right:.25rem;font-size:.55rem"></i>Live'}
+    else{badge.className='conn-badge off';badge.innerHTML='<i class="fas fa-exclamation-triangle" style="margin-right:.25rem;font-size:.55rem"></i>Reconnecting'}
+});
+
+/* Show skeletons */
+function showSkeletons(){
+    var g=document.getElementById('matchGrid');var h='';
+    for(var i=0;i<4;i++){
+        h+='<div class="skel"><div class="skel-bar" style="width:28%"></div><div class="skel-row"><div class="skel-circle"></div><div class="skel-bar" style="width:55%"></div><div class="skel-bar skel-score"></div><div class="skel-circle"></div><div class="skel-bar" style="width:45%"></div></div><div class="skel-bar" style="width:22%;margin-top:.6rem"></div></div>';
+    }
+    g.innerHTML=h;
+}
+
+/* Real-time listener */
+db.ref('matches').on('value',function(snapshot){
+    allMatches=snapshot.val()||{};
+    firstLoad=false;
+    renderMatches();
+});
+
+function renderMatches(){
+    var filtered=[];
+    for(var key in allMatches){
+        var m=allMatches[key];m._id=key;
+        if(m.sport===curSport&&m.age===curAge) filtered.push(m);
+    }
+    var ord={live:0,soon:1,done:2};
+    filtered.sort(function(a,b){return(ord[a.status]||3)-(ord[b.status]||3)});
+
+    /* Stats */
+    var lc=0,dc=0,sc=0;
+    for(var i=0;i<filtered.length;i++){if(filtered[i].status==='live')lc++;else if(filtered[i].status==='done')dc++;else sc++}
+    document.getElementById('statsRow').innerHTML=
+        '<div class="st-i"><div class="st-d sl"></div>Live <span class="st-c">'+lc+'</span></div><div class="st-sep">|</div>'+
+        '<div class="st-i"><div class="st-d sc"></div>Completed <span class="st-c">'+dc+'</span></div><div class="st-sep">|</div>'+
+        '<div class="st-i"><div class="st-d su"></div>Upcoming <span class="st-c">'+sc+'</span></div><div class="st-sep">|</div>'+
+        '<div class="st-i">Total <span class="st-c">'+filtered.length+'</span></div>';
+
+    var grid=document.getElementById('matchGrid');
+    if(filtered.length===0){
+        grid.innerHTML='<div class="empty-state" style="grid-column:1/-1"><i class="fas fa-trophy"></i><p>No matches scheduled in this category yet.<br>Matches will appear here once added by the admin.</p></div>';
+        return;
+    }
+
+    var html='';
+    for(var i=0;i<filtered.length;i++){
+        var m=filtered[i];
+        var sClass=m.status==='live'?'live':m.status==='done'?'done':'soon';
+        var sLabel=m.status==='live'?'LIVE':m.status==='done'?'FT':'UPCOMING';
+        var timeHtml=m.status==='soon'?'<i class="far fa-clock"></i> '+(m.matchTime||'TBD'):m.status==='live'?'<i class="fas fa-stopwatch"></i> '+(m.matchTime||''):'<i class="fas fa-flag-checkered"></i> Full Time';
+        var htHtml=m.halfTime?'<span class="mc-ht">HALF TIME</span>':'';
+        var sa=m.scoreA!=null?m.scoreA:'-';
+        var sb=m.scoreB!=null?m.scoreB:'-';
+        var scoreHtml=m.status==='soon'?'<span class="sc-n">VS</span>':'<span class="sc-n'+(prevScores[m._id]&&prevScores[m._id].sa!==sa?' flash':'')+'">'+sa+'</span><span class="sc-sep">-</span><span class="sc-n'+(prevScores[m._id]&&prevScores[m._id].sb!==sb?' flash':'')+'">'+sb+'</span>';
+
+        html+='<div class="mc '+sClass+'"><div class="mc-hd"><span class="mc-round">'+(m.round||'')+'</span><span class="mc-venue"><i class="fas fa-map-marker-alt"></i>'+(m.venue||'')+'</span></div><div class="score-row"><div class="tm home"><div class="tm-badge" style="background:'+tColor(m.teamA)+'">'+tAbbr(m.teamA)+'</div><div class="tm-nm"><span class="full">'+(m.teamA||'')+'</span><span class="abbr">'+tAbbr(m.teamA)+'</span></div></div><div class="sc-ctr">'+scoreHtml+'</div><div class="tm aw"><div class="tm-badge" style="background:'+tColor(m.teamB)+'">'+tAbbr(m.teamB)+'</div><div class="tm-nm"><span class="full">'+(m.teamB||'')+'</span><span class="abbr">'+tAbbr(m.teamB)+'</span></div></div></div><div class="mc-ft"><span class="mc-time">'+timeHtml+'</span>'+htHtml+'<span class="badge '+sClass+'">'+sLabel+'</span></div></div>';
+
+        prevScores[m._id]={sa:sa,sb:sb};
+    }
+    grid.innerHTML=html;
+    var cards=grid.querySelectorAll('.mc');
+    for(var i=0;i<cards.length;i++){(function(c,d){setTimeout(function(){c.classList.add('vis')},d)})(cards[i],i*55)}
+}
+
+/* Tabs */
+document.getElementById('sportTabs').addEventListener('click',function(e){var t=e.target.closest('.s-tab');if(!t||t.classList.contains('on'))return;var a=document.querySelectorAll('.s-tab');for(var i=0;i<a.length;i++)a[i].classList.remove('on');t.classList.add('on');curSport=t.dataset.sport;renderMatches()});
+document.getElementById('ageTabs').addEventListener('click',function(e){var t=e.target.closest('.a-tab');if(!t||t.classList.contains('on'))return;var a=document.querySelectorAll('.a-tab');for(var i=0;i<a.length;i++)a[i].classList.remove('on');t.classList.add('on');curAge=t.dataset.age;renderMatches()});
+
+/* Clock */
+function tick(){var n=new Date(),h=n.getHours(),m=n.getMinutes(),s=n.getSeconds(),ap=h>=12?'PM':'AM';h=h%12||12;document.getElementById('clock').textContent=(h<10?'0':'')+h+':'+(m<10?'0':'')+m+':'+(s<10?'0':'')+s+' '+ap}
+tick();setInterval(tick,1000);
+
+/* Intro */
+var introEl=document.getElementById('intro'),appEl=document.getElementById('app'),introDismissed=false;
+function dismissIntro(){if(introDismissed)return;introDismissed=true;introEl.style.pointerEvents='none';void introEl.offsetWidth;introEl.classList.add('out');appEl.classList.add('show');showSkeletons();setTimeout(function(){if(introEl.parentNode)introEl.parentNode.removeChild(introEl)},900)}
+document.getElementById('skipBtn').addEventListener('click',function(e){e.preventDefault();e.stopPropagation();dismissIntro()},true);
+setTimeout(dismissIntro,5000);
+</script>
+</body>
+</html>
