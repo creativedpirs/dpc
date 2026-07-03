@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DE PAUL CUP 2026 — Leaderboard Admin</title>
+    <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+    <style>
+        *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+        :root{--gold:#D4A843;--gold-lt:#F0D078;--gold-dk:#9A7B2E;--bg:#09090D;--card:#131319;--card-h:#19191F;--bdr:#22222E;--tx:#FFFFFF;--tx2:#7A7A8E;--live:#EF4444;--done:#22C55E;--danger:#DC2626;--info:#3B82F6;--silver:#A8A8B8;--bronze:#CD7F32}
+        body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--tx);min-height:100vh}
+
+        /* Password */
+        #pwOverlay{position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;align-items:center;justify-content:center;transition:opacity .5s,transform .5s}
+        #pwOverlay.out{opacity:0;transform:scale(1.05);pointer-events:none}
+        .pw-box{text-align:center;padding:2.5rem;width:min(400px,90vw)}
+        .pw-logo{width:80px;height:80px;object-fit:contain;filter:drop-shadow(0 0 15px rgba(212,168,67,.3));margin-bottom:1.5rem}
+        .pw-title{font-family:'Oswald',sans-serif;font-size:1.4rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);margin-bottom:.3rem}
+        .pw-sub{font-size:.75rem;color:var(--tx2);margin-bottom:1.8rem;letter-spacing:.06em}
+        .pw-input{width:100%;padding:.75rem 1rem;background:var(--card);border:1px solid var(--bdr);border-radius:8px;color:var(--tx);font-size:.9rem;font-family:'Inter',sans-serif;text-align:center;letter-spacing:.1em;outline:none;transition:border-color .25s}
+        .pw-input:focus{border-color:var(--gold)}.pw-input::placeholder{color:var(--tx2);letter-spacing:.05em}
+        .pw-btn{width:100%;margin-top:.8rem;padding:.75rem;background:var(--gold);color:#000;border:none;border-radius:8px;font-family:'Oswald',sans-serif;font-size:.9rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:background .25s}
+        .pw-btn:hover{background:var(--gold-lt)}
+        .pw-err{color:var(--danger);font-size:.75rem;margin-top:.7rem;min-height:1.1em}
+
+        /* Header */
+        .hdr{background:var(--card);border-bottom:1px solid var(--bdr);padding:.6rem 1rem;position:sticky;top:0;z-index:100}
+        .hdr-in{max-width:1400px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:.8rem;flex-wrap:wrap}
+        .hdr-l{display:flex;align-items:center;gap:.7rem;min-width:0}
+        .hdr-logo{width:32px;height:32px;object-fit:contain;flex-shrink:0}
+        .hdr-t{font-family:'Oswald',sans-serif;font-size:clamp(.75rem,2.5vw,1rem);font-weight:600;letter-spacing:.1em;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .hdr-t em{font-style:normal;color:var(--gold)}
+        .admin-badge{font-size:.5rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:rgba(212,168,67,.12);color:var(--gold);padding:.12rem .4rem;border-radius:3px;margin-left:.4rem}
+        .hdr-r{display:flex;align-items:center;gap:.7rem;flex-shrink:0;flex-wrap:wrap}
+        .hdr-link{font-size:.62rem;color:var(--tx2);text-decoration:none;letter-spacing:.05em;transition:color .25s;white-space:nowrap}.hdr-link:hover{color:var(--gold)}
+        .logout-btn{font-size:.62rem;font-weight:600;color:var(--danger);background:none;border:1px solid rgba(220,38,38,.25);padding:.28rem .6rem;border-radius:4px;cursor:pointer;letter-spacing:.08em;text-transform:uppercase;transition:all .25s;white-space:nowrap}
+        .logout-btn:hover{background:rgba(220,38,38,.1);border-color:var(--danger)}
+
+        /* Category Tabs */
+        .cat-wrap{max-width:1400px;margin:0 auto;padding:.7rem 1rem 0}
+        .cat-row{display:flex;gap:.8rem;align-items:center;flex-wrap:wrap}
+        .cat-group{display:flex;gap:.3rem}
+        .cat-label{font-size:.58rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--tx2);margin-right:.3rem;display:flex;align-items:center}
+        .cat-btn{font-size:.65rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:.35rem .7rem;background:var(--card);border:1px solid var(--bdr);color:var(--tx2);cursor:pointer;border-radius:5px;transition:all .25s;white-space:nowrap}
+        .cat-btn:hover{border-color:var(--gold-dk);color:var(--tx)}.cat-btn.on{background:rgba(212,168,67,.07);border-color:var(--gold);color:var(--gold)}
+        .cat-btn i{margin-right:.3rem;font-size:.6rem}
+        .cat-sep{width:1px;height:20px;background:var(--bdr);flex-shrink:0}
+
+        /* Admin Tabs */
+        .atabs-wrap{max-width:1400px;margin:0 auto;padding:.6rem 1rem 0}
+        .a-tabs{display:flex;gap:.35rem;overflow-x:auto;-webkit-overflow-scrolling:touch;border-bottom:1px solid var(--bdr);padding-bottom:0}.a-tabs::-webkit-scrollbar{display:none}
+        .a-tab{font-family:'Inter',sans-serif;font-size:.68rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:.55rem .85rem;background:none;border:none;color:var(--tx2);cursor:pointer;position:relative;transition:color .25s;white-space:nowrap;flex-shrink:0}
+        .a-tab:hover{color:var(--tx)}.a-tab.on{color:var(--gold)}
+        .a-tab.on::after{content:'';position:absolute;bottom:-1px;left:0;width:100%;height:2px;background:var(--gold)}
+        .a-tab i{margin-right:.35rem}
+
+        /* Content */
+        .content{max-width:1400px;margin:0 auto;padding:1rem}
+        .tab-pane{display:none}.tab-pane.on{display:block}
+
+        /* Add Team Form */
+        .form-card{background:var(--card);border:1px solid var(--bdr);border-radius:10px;padding:1.5rem;max-width:600px}
+        .form-title{font-family:'Oswald',sans-serif;font-size:1.05rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;margin-bottom:1.2rem}
+        .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:.8rem}
+        @media(max-width:500px){.form-grid{grid-template-columns:1fr}}
+        .fg{display:flex;flex-direction:column;gap:.3rem}.fg.full{grid-column:1/-1}
+        .fg label{font-size:.65rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--tx2)}
+        .fg input,.fg select{font-family:'Inter',sans-serif;font-size:.82rem;padding:.55rem .7rem;background:var(--bg);border:1px solid var(--bdr);border-radius:6px;color:var(--tx);outline:none;transition:border-color .25s}
+        .fg input:focus,.fg select:focus{border-color:var(--gold)}
+        .form-actions{display:flex;gap:.6rem;margin-top:1.2rem;flex-wrap:wrap}
+        .btn-primary{padding:.6rem 1.5rem;background:var(--gold);color:#000;border:none;border-radius:6px;font-family:'Oswald',sans-serif;font-size:.85rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;transition:background .25s}
+        .btn-primary:hover{background:var(--gold-lt)}
+        .btn-secondary{padding:.6rem 1.2rem;background:transparent;color:var(--tx2);border:1px solid var(--bdr);border-radius:6px;font-family:'Oswald',sans-serif;font-size:.85rem;font-weight:500;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;transition:all .25s}
+        .btn-secondary:hover{border-color:var(--tx2);color:var(--tx)}
+        .btn-danger{padding:.6rem 1.2rem;background:transparent;color:var(--danger);border:1px solid rgba(220,38,38,.25);border-radius:6px;font-family:'Oswald',sans-serif;font-size:.85rem;font-weight:500;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;transition:all .25s}
+        .btn-danger:hover{background:rgba(220,38,38,.08);border-color:var(--danger)}
+        .form-msg{font-size:.75rem;margin-top:.6rem;min-height:1.2em}
+
+        /* Import */
+        .format-card{background:var(--card);border:1px solid var(--bdr);border-radius:10px;padding:1.2rem;overflow-x:auto;margin-bottom:1.2rem}
+        .format-card h3{font-family:'Oswald',sans-serif;font-size:.85rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;margin-bottom:.8rem;color:var(--gold)}
+        .fmt-table{width:100%;border-collapse:collapse;font-size:.7rem;min-width:400px}
+        .fmt-table th{background:rgba(212,168,67,.08);color:var(--gold);font-weight:600;text-align:left;padding:.5rem .6rem;border-bottom:1px solid var(--bdr);white-space:nowrap;letter-spacing:.04em;text-transform:uppercase}
+        .fmt-table td{padding:.45rem .6rem;border-bottom:1px solid rgba(34,34,46,.5);color:var(--tx2)}
+        .upload-zone{background:var(--card);border:2px dashed var(--bdr);border-radius:10px;padding:2.5rem 1.5rem;text-align:center;cursor:pointer;transition:all .3s;margin-bottom:1rem}
+        .upload-zone:hover,.upload-zone.dragover{border-color:var(--gold);background:rgba(212,168,67,.03)}
+        .upload-zone i{font-size:2rem;color:var(--bdr);margin-bottom:.8rem;display:block}
+        .upload-zone p{font-size:.8rem;color:var(--tx2);margin-bottom:.3rem}
+        .upload-zone small{font-size:.65rem;color:var(--tx2);opacity:.6}
+        .upload-zone input{display:none}
+        .import-info{font-size:.72rem;color:var(--tx2);background:rgba(212,168,67,.05);border:1px solid rgba(212,168,67,.12);border-radius:6px;padding:.6rem .8rem;margin-bottom:1rem}
+        .import-info i{color:var(--gold);margin-right:.3rem}
+        .preview-wrap{overflow-x:auto;max-height:300px;overflow-y:auto;border:1px solid var(--bdr);border-radius:8px;margin-bottom:1rem}
+        .preview-table{width:100%;border-collapse:collapse;font-size:.68rem}
+        .preview-table th{background:rgba(212,168,67,.06);color:var(--gold);font-weight:600;text-align:left;padding:.4rem .5rem;border-bottom:1px solid var(--bdr);white-space:nowrap;font-size:.6rem;letter-spacing:.04em;text-transform:uppercase;position:sticky;top:0}
+        .preview-table td{padding:.35rem .5rem;border-bottom:1px solid rgba(34,34,46,.4);color:var(--tx2)}
+        .preview-table tr.err td{background:rgba(220,38,38,.05);color:var(--danger)}
+        .import-actions{display:flex;gap:.6rem;flex-wrap:wrap;align-items:center}
+        .import-log{margin-top:1rem;padding:1rem;background:var(--card);border:1px solid var(--bdr);border-radius:8px;font-size:.72rem;color:var(--tx2);max-height:200px;overflow-y:auto;display:none}
+        .import-log.show{display:block}
+        .log-ok{color:var(--done)}.log-err{color:var(--danger)}
+
+        /* Manage Table */
+        .mg-toolbar{display:flex;gap:.5rem;margin-bottom:1rem;flex-wrap:wrap;align-items:center;justify-content:space-between}
+        .mg-toolbar-left{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
+        .mg-search{min-width:180px;padding:.4rem .7rem;background:var(--bg);border:1px solid var(--bdr);border-radius:5px;color:var(--tx);font-size:.75rem;outline:none;font-family:'Inter',sans-serif;max-width:250px}
+        .mg-search:focus{border-color:var(--gold)}.mg-search::placeholder{color:var(--tx2)}
+        .mg-count{font-size:.68rem;color:var(--tx2)}
+
+        .mg-table-wrap{overflow-x:auto;border:1px solid var(--bdr);border-radius:10px;background:var(--card)}
+        .mg-table{width:100%;border-collapse:collapse;font-size:.75rem;min-width:500px}
+        .mg-table thead{position:sticky;top:0;z-index:2}
+        .mg-table th{background:rgba(212,168,67,.06);color:var(--gold);font-weight:600;text-align:left;padding:.6rem .7rem;border-bottom:1px solid var(--bdr);white-space:nowrap;font-size:.62rem;letter-spacing:.06em;text-transform:uppercase}
+        .mg-table td{padding:.55rem .7rem;border-bottom:1px solid rgba(34,34,46,.4);vertical-align:middle}
+        .mg-table tbody tr{transition:background .2s}.mg-table tbody tr:hover{background:var(--card-h)}
+        .mg-table .rank-cell{font-family:'Oswald',sans-serif;font-weight:700;font-size:.9rem;width:50px;text-align:center}
+        .mg-table .rank-cell.r1{color:var(--gold)}.mg-table .rank-cell.r2{color:var(--silver)}.mg-table .rank-cell.r3{color:var(--bronze)}
+        .mg-table .team-cell{display:flex;align-items:center;gap:.5rem;min-width:0}
+        .mg-table .tm-badge{width:28px;height:28px;border-radius:5px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-family:'Oswald',sans-serif;font-size:.55rem;font-weight:600;color:#fff}
+        .mg-table .tm-name{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+        .mg-table .score-cell{font-family:'Oswald',sans-serif;font-weight:700;font-size:1.1rem;text-align:center;width:80px}
+        .mg-table .actions-cell{display:flex;gap:.3rem;justify-content:flex-end}
+        .mg-btn{padding:.3rem .55rem;border-radius:4px;border:1px solid var(--bdr);background:transparent;font-size:.6rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;cursor:pointer;transition:all .25s;font-family:'Inter',sans-serif;white-space:nowrap}
+        .mg-btn.edit{color:var(--info);border-color:rgba(59,130,246,.25)}.mg-btn.edit:hover{background:rgba(59,130,246,.08)}
+        .mg-btn.delete{color:var(--danger);border-color:rgba(220,38,38,.2)}.mg-btn.delete:hover{background:rgba(220,38,38,.08)}
+        .mg-empty{text-align:center;padding:3rem 1rem;color:var(--tx2);font-size:.85rem}
+        .mg-empty i{font-size:2rem;color:var(--bdr);display:block;margin-bottom:.8rem}
+
+        /* Modal */
+        .modal-overlay{position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .25s}
+        .modal-overlay.show{opacity:1;pointer-events:auto}
+        .modal-box{background:var(--card);border:1px solid var(--bdr);border-radius:12px;padding:2rem;width:min(440px,90vw);text-align:center;transform:scale(.9);transition:transform .25s}
+        .modal-overlay.show .modal-box{transform:scale(1)}
+        .modal-box h3{font-family:'Oswald',sans-serif;font-size:1.05rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;margin-bottom:.5rem}
+        .modal-box p{font-size:.8rem;color:var(--tx2);margin-bottom:.3rem;line-height:1.5}
+        .modal-box .ref{font-size:.75rem;color:var(--gold);margin-bottom:1.2rem;font-weight:500}
+        .modal-btns{display:flex;gap:.6rem;justify-content:center;flex-wrap:wrap}
+        .modal-form{display:flex;flex-direction:column;gap:.6rem;margin:1rem 0;text-align:left}
+        .modal-form label{font-size:.62rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--tx2)}
+        .modal-form input{font-family:'Inter',sans-serif;font-size:.85rem;padding:.5rem .7rem;background:var(--bg);border:1px solid var(--bdr);border-radius:6px;color:var(--tx);outline:none;transition:border-color .25s;width:100%}
+        .modal-form input:focus{border-color:var(--gold)}
+
+        /* Toast */
+        #toasts{position:fixed;top:1rem;right:1rem;z-index:99999;display:flex;flex-direction:column;gap:.4rem;pointer-events:none}
+        .toast{padding:.6rem 1rem;border-radius:8px;font-size:.75rem;font-weight:500;pointer-events:auto;transform:translateX(110%);transition:transform .3s ease;max-width:320px;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+        .toast.show{transform:translateX(0)}
+        .toast-ok{background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.3);color:var(--done)}
+        .toast-err{background:rgba(220,38,38,.15);border:1px solid rgba(220,38,38,.3);color:var(--danger)}
+        .toast-info{background:rgba(59,130,246,.15);border:1px solid rgba(59,130,246,.3);color:var(--info)}
+
+        ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--bdr);border-radius:2px}
+        @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+    </style>
+</head>
+<body>
+
+<!-- Password -->
+<div id="pwOverlay">
+    <div class="pw-box">
+        <img src="./images/logo.png" alt="Logo" class="pw-logo">
+        <div class="pw-title">Leaderboard Admin</div>
+        <div class="pw-sub">DE PAUL CUP 2026</div>
+        <input type="password" class="pw-input" id="pwInput" placeholder="ENTER PASSWORD" autocomplete="off">
+        <button class="pw-btn" id="pwBtn">LOGIN</button>
+        <div class="pw-err" id="pwErr"></div>
+    </div>
+</div>
+
+<!-- Header -->
+<header class="hdr" id="adminHdr" style="display:none">
+    <div class="hdr-in">
+        <div class="hdr-l">
+            <img src="./images/logo.png" alt="Logo" class="hdr-logo">
+            <div class="hdr-t"><em>De Paul</em> Cup<span class="admin-badge">LB Admin</span></div>
+        </div>
+        <div class="hdr-r">
+            <a href="leaderboard.html" class="hdr-link"><i class="fas fa-trophy" style="margin-right:.3rem"></i>Leaderboard</a>
+            <a href="index.html" class="hdr-link"><i class="fas fa-tv" style="margin-right:.3rem"></i>Scoreboard</a>
+            <a href="admin.html" class="hdr-link"><i class="fas fa-futbol" style="margin-right:.3rem"></i>Match Admin</a>
+            <button class="logout-btn" id="logoutBtn"><i class="fas fa-sign-out-alt" style="margin-right:.3rem"></i>Logout</button>
+        </div>
+    </div>
+</header>
+
+<!-- Category Tabs -->
+<div class="cat-wrap" id="catWrap" style="display:none">
+    <div class="cat-row">
+        <div class="cat-group" id="sportCat">
+            <span class="cat-label"><i class="fas fa-gamepad" style="margin-right:.25rem"></i>Sport</span>
+            <button class="cat-btn on" data-sport="football"><i class="fas fa-futbol"></i>Football</button>
+            <button class="cat-btn" data-sport="basketball"><i class="fas fa-basketball"></i>Basketball</button>
+        </div>
+        <div class="cat-sep"></div>
+        <div class="cat-group" id="ageCat">
+            <span class="cat-label"><i class="fas fa-users" style="margin-right:.25rem"></i>Age</span>
+            <button class="cat-btn on" data-age="u16">U16</button>
+            <button class="cat-btn" data-age="u18">U18</button>
+        </div>
+    </div>
+</div>
+
+<!-- Admin Tabs -->
+<div class="atabs-wrap" id="atabsWrap" style="display:none">
+    <div class="a-tabs" id="adminTabs">
+        <button class="a-tab on" data-tab="add"><i class="fas fa-plus"></i>Add Team</button>
+        <button class="a-tab" data-tab="import"><i class="fas fa-file-excel"></i>Excel Import</button>
+        <button class="a-tab" data-tab="manage"><i class="fas fa-list"></i>Manage Teams</button>
+    </div>
+</div>
+
+<!-- Content -->
+<div class="content" id="contentArea" style="display:none">
+
+    <!-- Add Team -->
+    <div class="tab-pane on" id="pane-add">
+        <div class="form-card">
+            <div class="form-title" id="formTitle">Add Team</div>
+            <form id="teamForm" onsubmit="return false">
+                <input type="hidden" id="fEditId" value="">
+                <div class="form-grid">
+                    <div class="fg full">
+                        <label>Team Name</label>
+                        <input type="text" id="fName" placeholder="e.g. De Paul School" required>
+                    </div>
+                    <div class="fg">
+                        <label>Score</label>
+                        <input type="number" id="fScore" value="0" min="0">
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn-primary" id="fSubmitBtn" onclick="submitTeam()">Add Team</button>
+                    <button type="button" class="btn-secondary" id="fCancelBtn" onclick="cancelEdit()" style="display:none">Cancel</button>
+                </div>
+                <div class="form-msg" id="formMsg"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Excel Import -->
+    <div class="tab-pane" id="pane-import">
+        <div class="format-card">
+            <h3><i class="fas fa-info-circle" style="margin-right:.4rem"></i>Excel Format</h3>
+            <table class="fmt-table">
+                <thead><tr><th>Column</th><th>Required</th><th>Example</th></tr></thead>
+                <tbody>
+                    <tr><td>Sl.No</td><td>No (ignored)</td><td>1</td></tr>
+                    <tr><td>Team Name</td><td>Yes</td><td>De Paul School</td></tr>
+                    <tr><td>Score</td><td>No (default: 0)</td><td>25</td></tr>
+                </tbody>
+            </table>
+            <div style="margin-top:1rem">
+                <button class="btn-secondary" onclick="downloadTemplate()" style="font-size:.72rem;padding:.4rem 1rem"><i class="fas fa-download" style="margin-right:.3rem"></i>Download Template (.xlsx)</button>
+            </div>
+        </div>
+        <div class="import-info">
+            <i class="fas fa-exclamation-circle"></i>
+            Teams will be imported to: <strong id="importTarget">Football / U16</strong>. Change the sport/age tabs above to select a different category.
+        </div>
+        <div class="upload-zone" id="uploadZone">
+            <i class="fas fa-cloud-upload-alt"></i>
+            <p>Drag & drop your Excel file here</p>
+            <small>or click to browse — .xlsx, .xls files only</small>
+            <input type="file" id="fileInput" accept=".xlsx,.xls">
+        </div>
+        <div id="previewArea" style="display:none">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
+                <span style="font-size:.8rem;font-weight:600">Preview (<span id="previewCount">0</span> rows)</span>
+                <span id="previewErrors" style="font-size:.7rem;color:var(--danger)"></span>
+            </div>
+            <div class="preview-wrap"><table class="preview-table" id="previewTable"></table></div>
+            <div class="import-actions">
+                <button class="btn-primary" onclick="importData()" style="font-size:.78rem;padding:.5rem 1.2rem"><i class="fas fa-upload" style="margin-right:.3rem"></i>Import All</button>
+                <button class="btn-secondary" onclick="clearPreview()" style="font-size:.78rem;padding:.5rem 1rem">Clear</button>
+            </div>
+        </div>
+        <div class="import-log" id="importLog"></div>
+    </div>
+
+    <!-- Manage Teams -->
+    <div class="tab-pane" id="pane-manage">
+        <div class="mg-toolbar">
+            <div class="mg-toolbar-left">
+                <input type="text" class="mg-search" id="mgSearch" placeholder="Search team name...">
+                <span class="mg-count" id="mgCount"></span>
+            </div>
+            <button class="btn-danger" onclick="askDeleteAll()" style="font-size:.7rem;padding:.4rem .9rem"><i class="fas fa-trash" style="margin-right:.3rem"></i>Delete All</button>
+        </div>
+        <div class="mg-table-wrap" id="mgTableWrap"></div>
+    </div>
+</div>
+
+<!-- Edit Modal -->
+<div class="modal-overlay" id="editModal">
+    <div class="modal-box">
+        <h3>Edit Team</h3>
+        <div class="modal-form">
+            <label>Team Name</label>
+            <input type="text" id="editName" placeholder="Team name">
+            <label>Score</label>
+            <input type="number" id="editScore" min="0" placeholder="Score">
+        </div>
+        <div class="modal-btns">
+            <button class="btn-secondary" onclick="closeEditModal()">Cancel</button>
+            <button class="btn-primary" onclick="saveEdit()">Save</button>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Modal -->
+<div class="modal-overlay" id="delModal">
+    <div class="modal-box">
+        <h3 id="delTitle">Delete</h3>
+        <p id="delMsg">This action cannot be undone.</p>
+        <div class="ref" id="delRef"></div>
+        <div class="modal-btns">
+            <button class="btn-secondary" onclick="closeDelModal()">Cancel</button>
+            <button class="btn-primary" id="delConfirmBtn" style="background:var(--danger);color:#fff">Delete</button>
+        </div>
+    </div>
+</div>
+
+<!-- Toasts -->
+<div id="toasts"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script>
+/* Firebase */
+var firebaseConfig={apiKey:"AIzaSyBpNOpvViUBo1mB0MaMk2shSOMdVGCxG5w",authDomain:"dpcup-fbbb5.firebaseapp.com",databaseURL:"https://dpcup-fbbb5-default-rtdb.asia-southeast1.firebasedatabase.app",projectId:"dpcup-fbbb5",storageBucket:"dpcup-fbbb5.firebasestorage.app",messagingSenderId:"338538335205",appId:"1:338538335205:web:800a88022a4a010809fd0c"};
+firebase.initializeApp(firebaseConfig);
+var db=firebase.database();
+
+/* State */
+var curSport='football',curAge='u16';
+var teamsData={};
+var searchQ='';
+var parsedImportData=[];
+var editTargetId=null;
+var deleteTargetId=null;
+var deleteAllFlag=false;
+var ADMIN_PW='depaul2026';
+var listenerRef=null;
+
+/* Helpers */
+function tColor(n){var h=0;for(var i=0;i<n.length;i++)h=n.charCodeAt(i)+((h<<5)-h);return'hsl('+(((h%360)+360)%360)+',45%,30%)'}
+function tAbbr(n){var a=n.replace(/^(St\.?|Holy|SHSS|GHSS|MHSS|HSS|School|')/g,'').trim().split(/\s+/).map(function(w){return w[0]}).join('').substring(0,3).toUpperCase();return a||'TM'}
+function escHtml(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML}
+function toast(msg,type){var t=document.createElement('div');t.className='toast toast-'+(type||'ok');t.textContent=msg;document.getElementById('toasts').appendChild(t);setTimeout(function(){t.classList.add('show')},10);setTimeout(function(){t.classList.remove('show');setTimeout(function(){t.remove()},300)},3500)}
+function getPath(){return 'leaderboard/'+curSport+'/'+curAge}
+
+/* ── PASSWORD ── */
+if(sessionStorage.getItem('dpcup_lb_admin')==='true') showAdmin();
+db.ref('config/adminPassword').once('value',function(s){if(s.val()) ADMIN_PW=s.val()});
+document.getElementById('pwInput').addEventListener('keydown',function(e){if(e.key==='Enter')attemptLogin()});
+document.getElementById('pwBtn').addEventListener('click',attemptLogin);
+function attemptLogin(){var v=document.getElementById('pwInput').value.trim();if(v===ADMIN_PW){sessionStorage.setItem('dpcup_lb_admin','true');showAdmin()}else{document.getElementById('pwErr').textContent='Incorrect password. Try again.';document.getElementById('pwInput').value='';document.getElementById('pwInput').focus()}}
+function showAdmin(){document.getElementById('pwOverlay').classList.add('out');document.getElementById('adminHdr').style.display='';document.getElementById('catWrap').style.display='';document.getElementById('atabsWrap').style.display='';document.getElementById('contentArea').style.display='';setTimeout(function(){var o=document.getElementById('pwOverlay');if(o.parentNode)o.parentNode.removeChild(o)},600)}
+document.getElementById('logoutBtn').addEventListener('click',function(){sessionStorage.removeItem('dpcup_lb_admin');location.reload()});
+
+/* ── ADMIN TABS ── */
+document.getElementById('adminTabs').addEventListener('click',function(e){var t=e.target.closest('.a-tab');if(!t||t.classList.contains('on'))return;var all=document.querySelectorAll('#adminTabs .a-tab');for(var i=0;i<all.length;i++)all[i].classList.remove('on');t.classList.add('on');var panes=document.querySelectorAll('.tab-pane');for(var i=0;i<panes.length;i++)panes[i].classList.remove('on');document.getElementById('pane-'+t.dataset.tab).classList.add('on')});
+
+/* ── CATEGORY TABS ── */
+document.getElementById('sportCat').addEventListener('click',function(e){var b=e.target.closest('.cat-btn');if(!b||b.classList.contains('on'))return;var all=document.querySelectorAll('#sportCat .cat-btn');for(var i=0;i<all.length;i++)all[i].classList.remove('on');b.classList.add('on');curSport=b.dataset.sport;updateImportTarget();attachListener()});
+document.getElementById('ageCat').addEventListener('click',function(e){var b=e.target.closest('.cat-btn');if(!b||b.classList.contains('on'))return;var all=document.querySelectorAll('#ageCat .cat-btn');for(var i=0;i<all.length;i++)all[i].classList.remove('on');b.classList.add('on');curAge=b.dataset.age;updateImportTarget();attachListener()});
+
+function updateImportTarget(){var sn=curSport==='football'?'Football':'Basketball';var an=curAge==='u16'?'U16':'U18';document.getElementById('importTarget').textContent=sn+' / '+an}
+
+/* ── FIREBASE LISTENER ── */
+function attachListener(){
+    if(listenerRef) listenerRef.off();
+    listenerRef=db.ref(getPath());
+    listenerRef.on('value',function(s){
+        teamsData=s.val()||{};
+        renderManage();
+    });
+}
+attachListener();
+
+/* ── SORTED DATA ── */
+function getSorted(){
+    var arr=[];
+    for(var k in teamsData){
+        var t=teamsData[k];
+        arr.push({_id:k,name:t.name||'Unknown',score:parseInt(t.score)||0});
+    }
+    arr.sort(function(a,b){if(b.score!==a.score)return b.score-a.score;return(a.name||'').localeCompare(b.name||'')});
+    return arr;
+}
+
+/* ── ADD TEAM ── */
+function submitTeam(){
+    var editId=document.getElementById('fEditId').value;
+    var name=document.getElementById('fName').value.trim();
+    var score=parseInt(document.getElementById('fScore').value)||0;
+    if(!name){document.getElementById('formMsg').innerHTML='<span style="color:var(--danger)">Please enter a team name.</span>';return}
+    var data={name:name,score:score,updatedAt:Date.now()};
+    if(editId){
+        db.ref(getPath()+'/'+editId).update(data,function(err){
+            if(err) document.getElementById('formMsg').innerHTML='<span style="color:var(--danger)">Update failed.</span>';
+            else{toast('Team updated');cancelEdit()}
+        });
+    } else {
+        db.ref(getPath()).push(data,function(err){
+            if(err) document.getElementById('formMsg').innerHTML='<span style="color:var(--danger)">Failed to add.</span>';
+            else{toast('Team added');resetForm()}
+        });
+    }
+}
+function cancelEdit(){resetForm()}
+function resetForm(){document.getElementById('formTitle').textContent='Add Team';document.getElementById('fSubmitBtn').textContent='Add Team';document.getElementById('fCancelBtn').style.display='none';document.getElementById('fEditId').value='';document.getElementById('fName').value='';document.getElementById('fScore').value='0';document.getElementById('formMsg').innerHTML=''}
+
+/* ── EXCEL IMPORT ── */
+var uploadZone=document.getElementById('uploadZone');
+var fileInput=document.getElementById('fileInput');
+uploadZone.addEventListener('click',function(){fileInput.click()});
+uploadZone.addEventListener('dragover',function(e){e.preventDefault();uploadZone.classList.add('dragover')});
+uploadZone.addEventListener('dragleave',function(){uploadZone.classList.remove('dragover')});
+uploadZone.addEventListener('drop',function(e){e.preventDefault();uploadZone.classList.remove('dragover');if(e.dataTransfer.files.length)handleFile(e.dataTransfer.files[0])});
+fileInput.addEventListener('change',function(){if(fileInput.files.length)handleFile(fileInput.files[0])});
+
+function handleFile(file){
+    if(!file.name.match(/\.xlsx?$/i)){toast('Please upload .xlsx or .xls','err');return}
+    var reader=new FileReader();
+    reader.onload=function(e){
+        try{var wb=XLSX.read(e.target.result,{type:'array'});var ws=wb.Sheets[wb.SheetNames[0]];var rows=XLSX.utils.sheet_to_json(ws,{defval:''});if(rows.length===0){toast('File is empty','err');return}parseImport(rows)}
+        catch(err){toast('Error: '+err.message,'err')}
+    };
+    reader.readAsArrayBuffer(file);
+}
+
+function parseImport(rows){
+    parsedImportData=[];var errors=0;
+    for(var i=0;i<rows.length;i++){
+        var r=rows[i];
+        var name=(r['Team Name']||r['TeamName']||r['team name']||r['teamName']||r['Name']||r['name']||'').toString().trim();
+        var score=parseInt(r['Score']||r['score']||r['Points']||r['points'])||0;
+        var err=[];
+        if(!name) err.push('Name missing');
+        parsedImportData.push({name:name,score:score,errors:err,rowNum:i+1});
+        if(err.length) errors++;
+    }
+    showPreview(errors);
+}
+
+function showPreview(errorCount){
+    document.getElementById('previewArea').style.display='block';
+    document.getElementById('previewCount').textContent=parsedImportData.length;
+    document.getElementById('previewErrors').textContent=errorCount?'\u26A0 '+errorCount+' row(s) with errors':'';
+    var h='<thead><tr><th>#</th><th>Team Name</th><th>Score</th><th>Status</th></tr></thead><tbody>';
+    for(var i=0;i<parsedImportData.length;i++){
+        var d=parsedImportData[i];
+        h+='<tr'+(d.errors.length?' class="err"':'')+'><td>'+(i+1)+'</td><td>'+escHtml(d.name)+'</td><td>'+d.score+'</td><td>'+(d.errors.length?'<span style="color:var(--danger)">'+d.errors.join(', ')+'</span>':'<span style="color:var(--done)">OK</span>')+'</td></tr>';
+    }
+    h+='</tbody>';
+    document.getElementById('previewTable').innerHTML=h;
+}
+
+function importData(){
+    var valid=[];var skipped=0;
+    for(var i=0;i<parsedImportData.length;i++){if(parsedImportData[i].errors.length===0)valid.push(parsedImportData[i]);else skipped++}
+    if(valid.length===0){toast('No valid rows','err');return}
+    var log=document.getElementById('importLog');log.classList.add('show');log.innerHTML='<div>Importing '+valid.length+' teams to '+curSport+'/'+curAge+'...</div>';
+    var batch={};
+    for(var i=0;i<valid.length;i++){
+        var d=valid[i];var key=db.ref(getPath()).push().key;
+        batch[getPath()+'/'+key]={name:d.name,score:d.score,updatedAt:Date.now()};
+    }
+    db.ref().update(batch,function(err){
+        if(err){log.innerHTML+='<div class="log-err">Failed: '+err.message+'</div>';toast('Import failed','err')}
+        else{log.innerHTML+='<div class="log-ok">Imported '+valid.length+' teams.'+(skipped?' '+skipped+' skipped.':'')+'</div>';toast(valid.length+' teams imported!');clearPreview()}
+    });
+}
+
+function clearPreview(){document.getElementById('previewArea').style.display='none';document.getElementById('importLog').classList.remove('show');document.getElementById('importLog').innerHTML='';parsedImportData=[];fileInput.value=''}
+
+function downloadTemplate(){
+    var data=[['Sl.No','Team Name','Score'],['1','De Paul School','25'],['2',"St. Joseph's HSS",'18'],['3','Loyola School','15'],['4','Christ Nagar School','12'],['5','Rajagiri School','10']];
+    var ws=XLSX.utils.aoa_to_sheet(data);ws['!cols']=[{wch:8},{wch:25},{wch:10}];
+    var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Teams');XLSX.writeFile(wb,'Leaderboard_Template.xlsx');toast('Template downloaded!');
+}
+
+/* ── MANAGE TEAMS ── */
+document.getElementById('mgSearch').addEventListener('input',function(){searchQ=this.value.toLowerCase();renderManage()});
+
+function renderManage(){
+    var wrap=document.getElementById('mgTableWrap');
+    var sorted=getSorted();
+    var filtered=sorted;
+    if(searchQ){filtered=[];for(var i=0;i<sorted.length;i++){if((sorted[i].name||'').toLowerCase().indexOf(searchQ)!==-1)filtered.push(sorted[i])}}
+    document.getElementById('mgCount').textContent=filtered.length+' team'+(filtered.length!==1?'s':'');
+
+    if(filtered.length===0){
+        wrap.innerHTML='<div class="mg-empty"><i class="fas fa-inbox"></i>No teams found.</div>';return;
+    }
+
+    var h='<table class="mg-table"><thead><tr><th>Rank</th><th>Team</th><th>Score</th><th>Actions</th></tr></thead><tbody>';
+    for(var i=0;i<filtered.length;i++){
+        var t=filtered[i];var rank=i+1;
+        var rc=rank===1?'r1':rank===2?'r2':rank===3?'r3':'';
+        var ri=rank===1?'<i class="fas fa-crown" style="font-size:.7rem"></i>':rank;
+        h+='<tr><td class="rank-cell '+rc+'">'+ri+'</td>'+
+            '<td><div class="team-cell"><div class="tm-badge" style="background:'+tColor(t.name)+'">'+tAbbr(t.name)+'</div><span class="tm-name">'+escHtml(t.name)+'</span></div></td>'+
+            '<td class="score-cell">'+t.score+'</td>'+
+            '<td><div class="actions-cell"><button class="mg-btn edit" onclick="openEditModal(\''+t._id+'\')"><i class="fas fa-pen" style="margin-right:.2rem"></i>Edit</button><button class="mg-btn delete" onclick="askDelete(\''+t._id+'\')"><i class="fas fa-trash" style="margin-right:.2rem"></i>Del</button></div></td></tr>';
+    }
+    h+='</tbody></table>';
+    wrap.innerHTML=h;
+}
+
+/* ── EDIT MODAL ── */
+function openEditModal(id){
+    var t=teamsData[id];if(!t)return;
+    editTargetId=id;
+    document.getElementById('editName').value=t.name||'';
+    document.getElementById('editScore').value=(parseInt(t.score)||0);
+    document.getElementById('editModal').classList.add('show');
+}
+function closeEditModal(){document.getElementById('editModal').classList.remove('show');editTargetId=null}
+function saveEdit(){
+    if(!editTargetId)return;
+    var name=document.getElementById('editName').value.trim();
+    var score=parseInt(document.getElementById('editScore').value)||0;
+    if(!name){toast('Team name required','err');return}
+    db.ref(getPath()+'/'+editTargetId).update({name:name,score:score,updatedAt:Date.now()},function(err){
+        if(err) toast('Update failed','err'); else{toast('Updated');closeEditModal()}
+    });
+}
+
+/* ── DELETE ── */
+function askDelete(id){
+    var t=teamsData[id];if(!t)return;
+    deleteTargetId=id;deleteAllFlag=false;
+    document.getElementById('delTitle').textContent='Delete Team';
+    document.getElementById('delMsg').textContent='This action cannot be undone.';
+    document.getElementById('delRef').textContent=t.name+' ('+t.score+' pts)';
+    document.getElementById('delConfirmBtn').textContent='Delete';
+    document.getElementById('delConfirmBtn').onclick=confirmDelete;
+    document.getElementById('delModal').classList.add('show');
+}
+function askDeleteAll(){
+    deleteAllFlag=true;deleteTargetId=null;
+    var sn=curSport==='football'?'Football':'Basketball';
+    var an=curAge==='u16'?'U16':'U18';
+    document.getElementById('delTitle').textContent='Delete All Teams';
+    document.getElementById('delMsg').textContent='This will permanently remove ALL teams from this category.';
+    document.getElementById('delRef').textContent=sn+' / '+an+' — '+Object.keys(teamsData).length+' teams';
+    document.getElementById('delConfirmBtn').textContent='Delete All';
+    document.getElementById('delConfirmBtn').onclick=confirmDelete;
+    document.getElementById('delModal').classList.add('show');
+}
+function closeDelModal(){document.getElementById('delModal').classList.remove('show');deleteTargetId=null;deleteAllFlag=false}
+function confirmDelete(){
+    if(deleteAllFlag){
+        db.ref(getPath()).remove(function(err){
+            if(err) toast('Failed to delete','err'); else{toast('All teams deleted');closeDelModal()}
+        });
+    } else if(deleteTargetId){
+        db.ref(getPath()+'/'+deleteTargetId).remove(function(err){
+            if(err) toast('Failed to delete','err'); else{toast('Team deleted');closeDelModal()}
+        });
+    }
+}
+
+/* Close modals on overlay click */
+document.getElementById('editModal').addEventListener('click',function(e){if(e.target===this)closeEditModal()});
+document.getElementById('delModal').addEventListener('click',function(e){if(e.target===this)closeDelModal()});
+</script>
+</body>
+</html>
